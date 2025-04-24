@@ -9,4 +9,4 @@ upgrade_policy="compatible"
 AptosFramework = { git = "https://github.com/movementlabsxyz/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "movement" }
 
 [addresses]
-document_management = "0xb163ca4db45752d2a781c289fece63c22cdf4d459353395f30576b866d7569d3"
+document_management = "0x50726337ced3e9ba6916321206682fdbf5b7ab40c6a89628bcc5bc089746c409"
