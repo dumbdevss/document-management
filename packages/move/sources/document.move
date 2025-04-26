@@ -185,6 +185,25 @@ module document_management::secure_docs {
         });
     }
 
+    public entry fun remove_signer(
+        owner: &signer,
+        id: String,
+        remove_signer: address
+    ) acquires DocState, ResourceAccountCap {
+        let state = borrow_global_mut<DocState>(get_resource_address());
+        assert_document_exists(state, &id);
+
+        let document = table::borrow_mut(&mut state.documents, id);
+        assert_is_owner(document, owner);
+
+        let (found, i) = vector::index_of(&document.allowed_signers, &remove_signer);
+        if (found) {
+            vector::remove(&mut document.allowed_signers, i);
+        } else {
+            abort 1; // Or handle the error as needed
+        };
+    }
+
     // Helper Functions
     fun get_resource_address(): address acquires ResourceAccountCap {
         let cap = borrow_global<ResourceAccountCap>(@document_management);

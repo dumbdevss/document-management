@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Karla } from "next/font/google"
 import { ScaffoldMoveAppWithProviders } from "../components/ScaffoldMoveAppWithProviders"
+import { Toaster } from "~~/components/ui/toaster"
 import "./globals.css"
 
 const karla = Karla({
@@ -12,7 +13,7 @@ const karla = Karla({
 export const metadata: Metadata = {
   title: "DocSign - Document Management",
   description: "Secure document management and signing platform",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -22,7 +23,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${karla.variable} font-karla bg-neutral-50 text-neutral-800`}><ScaffoldMoveAppWithProviders>{children}</ScaffoldMoveAppWithProviders></body>
+      <body className={`${karla.variable} font-karla bg-neutral-50 text-neutral-800`}>
+        <ScaffoldMoveAppWithProviders>
+          <Toaster />
+          {children}
+        </ScaffoldMoveAppWithProviders>
+      </body>
     </html>
   )
 }
