@@ -1,5 +1,5 @@
 [package]
-name = "NFTMarketplace"
+name = "Document Management"
 version = "1.0.0"
 authors = ["Taiwo Triumphant"]
 upgrade_policy="compatible"
@@ -7,12 +7,6 @@ upgrade_policy="compatible"
 
 [dependencies]
 AptosFramework = { git = "https://github.com/movementlabsxyz/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "movement" }
-AptosStdlib = { git = "https://github.com/movementlabsxyz/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib", rev = "movement" }
-MoveStdlib = { git = "https://github.com/movementlabsxyz/aptos-core.git", subdir = "aptos-move/framework/move-stdlib", rev = "movement" }
-AptosToken = { git = "https://github.com/movementlabsxyz/aptos-core.git", subdir = "aptos-move/framework/aptos-token", rev = "movement" }
-AptosTokenObjects = { git = "https://github.com/movementlabsxyz/aptos-core.git", subdir = "aptos-move/framework/aptos-token-objects", rev = "movement" }
-
 
 [addresses]
-marketplace = "0xb163ca4db45752d2a781c289fece63c22cdf4d459353395f30576b866d7569d3"
-aptos_framework = "0x1
+document_management = "0x59b41e7a75b59213dd30cea752f8ae8bac40b8162736782aca71e24be0840acd"
