@@ -22,9 +22,10 @@ module document_management::secure_docs {
     const E_NOT_ALLOWED_TO_SIGN: u64 = 4;
     const E_DOCUMENT_ALREADY_EXISTS: u64 = 5;
     const E_INSUFFICIENT_FUNDS: u64 = 6;
+    const E_SIGNER_NOT_FOUND: u64 = 7;
 
     // Struct to store document metadata
-    struct Document has store {
+    struct Document has store, drop, copy {
         id: String,              // Unique document ID
         name: String,            // Document name
         ipfs_hash: String,       // IPFS hash for off-chain storage
@@ -39,12 +40,13 @@ module document_management::secure_docs {
         admin: address,
         documents: Table<String, Document>, // Maps document ID to Document
         doc_counter: u64,          // Tracks total documents
+        document_vec: vector<Document>, // Vector of documents for iteration
         upload_events: EventHandle<UploadEvent>,
         sign_events: EventHandle<SignEvent>,
         share_events: EventHandle<ShareEvent>,
     }
 
-    // Struct to store the resource account's Signercapability
+    // Struct to store the resource account's SignerCapability
     struct ResourceAccountCap has key {
         signer_cap: account::SignerCapability,
     }
@@ -89,12 +91,13 @@ module document_management::secure_docs {
             admin: admin_addr,
             documents: table::new(),
             doc_counter: 0,
+            document_vec: vector::empty(),
             upload_events: account::new_event_handle<UploadEvent>(&resource_signer),
             sign_events: account::new_event_handle<SignEvent>(&resource_signer),
             share_events: account::new_event_handle<ShareEvent>(&resource_signer),
         });
 
-        // Store Signercapability under admin's address
+        // Store SignerCapability under admin's address
         move_to(admin, ResourceAccountCap {
             signer_cap,
         });
@@ -130,6 +133,7 @@ module document_management::secure_docs {
         };
 
         table::add(&mut state.documents, id, document);
+        vector::push_back(&mut state.document_vec, document);
         state.doc_counter = state.doc_counter + 1;
 
         // Emit upload event
@@ -151,16 +155,33 @@ module document_management::secure_docs {
         let state = borrow_global_mut<DocState>(get_resource_address());
         assert_document_exists(state, &id);
 
-        let document = table::borrow_mut(&mut state.documents, id);
-        assert_is_owner(document, owner);
+        // Borrow the document from the table
+        let document_table = table::borrow_mut(&mut state.documents, id);
 
-        if (!vector::contains(&document.allowed_signers, &new_signer)) {
-            vector::push_back(&mut document.allowed_signers, new_signer);
+        // Find the document in the vector
+        let (found, i) = vector::index_of(&state.document_vec, document_table);
+        assert!(found, error::not_found(E_DOCUMENT_NOT_FOUND));
+
+        // Borrow the document from the vector
+        let document_vec = vector::borrow_mut(&mut state.document_vec, i);
+
+        // Assert the owner is authorized
+        assert_is_owner(document_table, owner);
+
+        // Add the new signer to both the table and vector if not already present
+        if (!vector::contains(&document_table.allowed_signers, &new_signer)) {
+            // Update the table's document
+            vector::push_back(&mut document_table.allowed_signers, new_signer);
+
+            // Update the vector's document
+            vector::push_back(&mut document_vec.allowed_signers, new_signer);
+
+            // Emit the share event
             event::emit_event(&mut state.share_events, ShareEvent {
                 id: id,
                 allowed_signer: new_signer,
             });
-        };
+        }
     }
 
     // Sign a document
@@ -172,11 +193,23 @@ module document_management::secure_docs {
         let state = borrow_global_mut<DocState>(get_resource_address());
         assert_document_exists(state, &id);
 
-        let document = table::borrow_mut(&mut state.documents, id);
-        assert_allowed_to_sign(document, signer_addr);
-        assert_not_already_signed(document, signer_addr);
+        // Borrow the document from the table
+        let document_table = table::borrow_mut(&mut state.documents, id);
 
-        vector::push_back(&mut document.signatures, signer_addr);
+        // Find the document in the vector
+        let (found, i) = vector::index_of(&state.document_vec, document_table);
+        assert!(found, error::not_found(E_DOCUMENT_NOT_FOUND));
+
+        // Borrow the document from the vector
+        let document_vec = vector::borrow_mut(&mut state.document_vec, i);
+
+        // Assert the signer is allowed and hasn't already signed
+        assert_allowed_to_sign(document_table, signer_addr);
+        assert_not_already_signed(document_table, signer_addr);
+
+        // Update signatures in both the table and vector
+        vector::push_back(&mut document_table.signatures, signer_addr);
+        vector::push_back(&mut document_vec.signatures, signer_addr);
 
         // Emit sign event
         event::emit_event(&mut state.sign_events, SignEvent {
@@ -185,6 +218,7 @@ module document_management::secure_docs {
         });
     }
 
+    // Remove a signer from a document
     public entry fun remove_signer(
         owner: &signer,
         id: String,
@@ -193,14 +227,26 @@ module document_management::secure_docs {
         let state = borrow_global_mut<DocState>(get_resource_address());
         assert_document_exists(state, &id);
 
-        let document = table::borrow_mut(&mut state.documents, id);
-        assert_is_owner(document, owner);
+        // Borrow the document from the table
+        let document_table = table::borrow_mut(&mut state.documents, id);
 
-        let (found, i) = vector::index_of(&document.allowed_signers, &remove_signer);
+        // Find the document in the vector
+        let (found, i) = vector::index_of(&state.document_vec, document_table);
+        assert!(found, error::not_found(E_DOCUMENT_NOT_FOUND));
+
+        // Borrow the document from the vector
+        let document_vec = vector::borrow_mut(&mut state.document_vec, i);
+
+        // Assert the owner is authorized
+        assert_is_owner(document_table, owner);
+
+        // Remove the signer from both the table and vector if present
+        let (found, index) = vector::index_of(&document_table.allowed_signers, &remove_signer);
         if (found) {
-            vector::remove(&mut document.allowed_signers, i);
+            vector::remove(&mut document_table.allowed_signers, index);
+            vector::remove(&mut document_vec.allowed_signers, index);
         } else {
-            abort 1; // Or handle the error as needed
+            abort error::not_found(E_SIGNER_NOT_FOUND);
         };
     }
 
@@ -238,6 +284,49 @@ module document_management::secure_docs {
 
         let doc = table::borrow(&state.documents, id);
         (doc.name, doc.ipfs_hash, doc.created_at, doc.owner, doc.signatures, doc.allowed_signers)
+    }
+
+    // Get all documents a user is allowed to sign
+    #[view]
+    public fun get_documents_for_signer(
+        user_addr: address
+    ): vector<Document> acquires DocState, ResourceAccountCap {
+        let state = borrow_global<DocState>(get_resource_address());
+        let result = vector::empty<Document>();
+        let len = vector::length(&state.document_vec);
+        let i = 0;
+
+        while (i < len) {
+            let doc = vector::borrow(&state.document_vec, i);
+            if (vector::contains(&doc.allowed_signers, &user_addr)) {
+                vector::push_back(&mut result, *doc);
+            };
+            i = i + 1;
+        };
+
+        result
+    }
+
+
+    // Get all documents a user own
+    #[view]
+    public fun get_documents_by_signer(
+        user_addr: address
+    ): vector<Document> acquires DocState, ResourceAccountCap {
+        let state = borrow_global<DocState>(get_resource_address());
+        let result = vector::empty<Document>();
+        let len = vector::length(&state.document_vec);
+        let i = 0;
+
+        while (i < len) {
+            let doc = vector::borrow(&state.document_vec, i);
+            if (doc.owner == user_addr) {
+                vector::push_back(&mut result, *doc);
+            };
+            i = i + 1;
+        };
+
+        result
     }
 
     #[view]
