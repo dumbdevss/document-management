@@ -17,9 +17,10 @@ import { useView } from "~~/hooks/scaffold-move/useView"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~~/components/ui/tabs"
 
 // Pinata API credentials - in a real app, these should be environment variables
-const PINATA_API_KEY = process.env.NEXT_PUBLIC_PINATA_API_KEY
-const PINATA_API_SECRET = process.env.NEXT_PUBLIC_PINATA_API_SECRET
-const PINATA_GATEWAY = process.env.NEXT_PUBLIC_PINATA_GATEWAY || "https://gateway.pinata.cloud/ipfs/"
+// TODOs 1: define the pinata api keys for file upload
+const PINATA_API_KEY = ""
+const PINATA_API_SECRET = ""
+const PINATA_GATEWAY = ""
 
 // Success component that shows when document is created
 const DocumentSuccessView = ({ docId, title, fileUrl }: { docId: string, title: string, fileUrl: string }) => {
@@ -58,16 +59,11 @@ const DocumentSuccessView = ({ docId, title, fileUrl }: { docId: string, title: 
 
 const DocumentCard = ({ document }: any) => {
 
+  // TODOs 2: create a format date function to convert timestamp to date/time string
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "Europe/London",
-    });
+    return ""
   };
+
 
   return (
     <Card className="mb-4">
@@ -89,10 +85,10 @@ const DocumentCard = ({ document }: any) => {
         </div>
       </CardContent>
       <CardFooter className="flex justify-between border-t bg-muted/50 px-6 py-3">
-        <a 
-          href={document.ipfs_hash} 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <a
+          href={document.ipfs_hash}
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-blue-600 hover:underline inline-flex items-center text-sm"
         >
           View Document <ExternalLink className="ml-1 h-3 w-3" />
@@ -119,22 +115,15 @@ export default function DocumentManagement() {
   const { submitTransaction, transactionInProcess } = useSubmitTransaction("secure_docs");
 
   // Fetch user's documents for the View Documents tab
-  const { data, error: docsError, isLoading: isLoadingDocs } = useView({
-    moduleName: "secure_docs",
-    functionName: "get_documents_by_signer",
-    args: [account?.address as `0x${string}`],
-  })
+  // TODOs 3: get the documents created by the user wallet connected using useView
+  const { data, error: docsError, isLoading: isLoadingDocs } = {
+    data: [[]],
+    error: "",
+    isLoading: false
+  };
+  
+  let userDocuments = data?.[0];
 
- let userDocuments = data?.[0]
-
-  // Fetch specific document when one is created
-  const { data: documentDataVal, error: docError, isLoading: isLoadingDoc } = useView({
-    moduleName: "secure_docs",
-    functionName: "get_document",
-    args: [docuId],
-  })
-
-  let documentData = documentDataVal?.[0];
 
   // File upload with react-dropzone
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -166,43 +155,12 @@ export default function DocumentManagement() {
     }
   })
 
+   // TODOs 4: create a function that upload the function to pinata using the pinata enpoint `https://api.pinata.cloud/pinning/pinFileToIPFS`
   const uploadToPinata = async (file: File) => {
-    setIsUploading(true)
-
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-        method: "POST",
-        headers: {
-          "pinata_api_key": PINATA_API_KEY || "",
-          "pinata_secret_api_key": PINATA_API_SECRET || "",
-        },
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to upload to Pinata")
-      }
-
-      const data = await response.json()
-      const ipfsHash = data.IpfsHash
-      const fileUrl = `${PINATA_GATEWAY}/ipfs/${ipfsHash}`
-
-      setFileUrl(fileUrl)
-      toast({
-        title: "File Uploaded",
-        description: "Your file has been uploaded successfully.",
-      })
-    } catch (error) {
-      console.error("Error uploading to Pinata:", error)
-      throw error
-    } finally {
-      setIsUploading(false)
-    }
+    
   }
 
+  
   const removeFile = () => {
     setFile(null)
     setFileUrl("")
@@ -211,71 +169,19 @@ export default function DocumentManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate form
-    if (!title.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a document title",
-        variant: "destructive",
-      })
-      return
-    }
+    // TODOs 5: Validate the form input and toast error if for any invalid form input
 
-    if (!fileUrl) {
-      toast({
-        title: "Error",
-        description: "Please upload a document file",
-        variant: "destructive",
-      })
-      return
-    }
+    // TODOs 6: check if the user wallet is connected and if not, show a toast error
 
-    if (!connected) {
-      console.log("Wallet not connected")
-      toast({
-        title: "Error",
-        description: "Please connect your wallet",
-        variant: "destructive",
-      })
-      return
-    }
+    // TODOs 7: interact with the smart contract to upload document, use submitTransaction function and toast success or error
 
-    try {
-      const id = nanoid();
-      setDocId(id);
-      // Submit transaction to blockchain
-      await submitTransaction("upload_document", [
-        title,
-        fileUrl,
-        id
-      ])
-      
-      // Set submission successful state
-      setIsSubmitted(true)
-
-      toast({
-        title: "Success",
-        description: "Document created successfully. You can now manage signers from the document page.",
-      })
-    } catch (error) {
-      console.error("Transaction error:", error)
-      toast({
-        title: "Transaction Failed",
-        description: "There was an error creating the document.",
-        variant: "destructive",
-      })
-    }
   }
 
+  // TODOs 8: Reset the form after successful submission
   const resetForm = () => {
-    setTitle("")
-    setFile(null)
-    setFileUrl("")
-    setIsSubmitted(false)
-    setDocId("")
   }
 
-  const handleTabChange = (tab : any) => {
+  const handleTabChange = (tab: any) => {
     setActiveTab(tab)
     if (tab === "create" && isSubmitted) {
       resetForm()
@@ -408,7 +314,8 @@ export default function DocumentManagement() {
                 <CardDescription>Manage your created and shared documents.</CardDescription>
               </CardHeader>
               <CardContent>
-                {!connected && (
+                {/* TODOs 9: if wallet not connected display this*/}
+                {false && (
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <FileText className="h-12 w-12 text-muted-foreground/50" />
                     <h3 className="mt-4 text-lg font-medium">Connect Your Wallet</h3>
@@ -418,28 +325,31 @@ export default function DocumentManagement() {
                   </div>
                 )}
 
-                {connected && isLoadingDocs && (
+                {/* TODOs 10: if wallet connected and loading documents display this*/}
+                {false && (
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" />
                     <p className="mt-4 text-sm text-muted-foreground">Loading your documents...</p>
                   </div>
                 )}
 
-                {connected && !isLoadingDocs && docsError && (
+                {/* TODOs 11: if wallet connected and documents error display this*/}
+                {false && (
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <p className="text-sm text-red-500">Failed to load documents. Please try again.</p>
                   </div>
                 )}
 
-                {connected && !isLoadingDocs && !docsError && userDocuments && userDocuments?.length === 0 && (
+                {/* TODOs 12: if wallet connected and no documents display this*/}
+                {false && (
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <FileText className="h-12 w-12 text-muted-foreground/50" />
                     <h3 className="mt-4 text-lg font-medium">No Documents Found</h3>
                     <p className="mt-2 text-sm text-muted-foreground">
                       You haven't created any documents yet.
                     </p>
-                    <Button 
-                      className="mt-4" 
+                    <Button
+                      className="mt-4"
                       onClick={() => setActiveTab("create")}
                     >
                       Create Your First Document

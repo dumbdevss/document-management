@@ -21,79 +21,42 @@ export default function SignDocument() {
   const [signature, setSignature] = useState("")
 
   const { toast } = useToast()
-  const { submitTransaction, transactionInProcess } = useSubmitTransaction("secure_docs")
-  const { account, connected } = useWallet()
+  const { submitTransaction, transactionInProcess } = useSubmitTransaction("secure_docs");
+  const { account, connected } = useWallet();
   const walletAddress = account?.address
 
-  // Get document data
-  const { data, error, isLoading, refetch } = useView({
-    moduleName: "secure_docs",
-    functionName: "get_document",
-    args: [documentId],
-  })
+  // TODOs 16: get document data using useView hooks and documentId as argument
+  const { data, error, isLoading, refetch } = {
+    data: [[]],
+    error: "",
+    isLoading: false,
+    refetch: () => {
+      console.log("Refetching data...");
+    },
+  };
 
-  // Parse document data
-  const document = data ? {
-    title: data[0], // doc.name
-    ipfs_hash: data[1], // doc.ipfs_hash
-    created_at: data[2], // doc.created_at
-    owner: data[3], // doc.owner
-    signatures: data[4], // doc.signatures
-    allowed_signers: data[5], // doc.allowed_signers
-  } : null;
+  // TODOs 17: replace the following mock data with the actual data from the useView hook
+  const document =  {
+    title: "", 
+    ipfs_hash: "", 
+    created_at: "",
+    owner: "", 
+    signatures: "", 
+    allowed_signers:"",
+  };
 
-  // Check if current user is allowed to sign
-  const isAllowedSigner = walletAddress && document ?
-    document.allowed_signers.some(
-      signer => signer.toLowerCase() === walletAddress.toLowerCase()
-    ) : false;
+  // TODOs 18: check if the user is an allowed signer
+  const isAllowedSigner = false;
 
-  // Check if user has already signed
-  const hasAlreadySigned = walletAddress && document ?
-    document.signatures.some(
-      sig => sig.toLowerCase() === walletAddress.toLowerCase()
-    ) : false;
+  // TODOs 19: check if the user has already signed the document
+  const hasAlreadySigned = false;
 
   const handleSignDocument = async () => {
-    if (!signature.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter your signature",
-        variant: "destructive",
-      })
-      return
-    }
+    // TODOs 20: check if signature is empty and if the user is connected to the wallet and toast error
 
-    if (!connected) {
-      toast({
-        title: "Error",
-        description: "Please connect your wallet to sign the document",
-        variant: "destructive",
-      })
-      return
-    }
+    // TODOs 21: interact with the smart contract to sign document, use submitTransaction function and toast success or error
 
-    try {
-      await submitTransaction("sign_document", [
-        documentId,
-      ])
 
-      toast({
-        title: "Success",
-        description: "Document signed successfully",
-      })
-
-      // Reset form and refetch data
-      setSignature("")
-      refetch()
-    } catch (error) {
-      console.error("Error signing document:", error)
-      toast({
-        title: "Error",
-        description: "Failed to sign the document. Please try again.",
-        variant: "destructive",
-      })
-    }
   }
 
   if (isLoading) {

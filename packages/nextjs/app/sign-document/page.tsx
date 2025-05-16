@@ -19,18 +19,17 @@ export default function SignDocuments() {
   const { connected, account } = useWallet()
   const { toast } = useToast()
 
-  // Fetch documents available for the current signer
-  const { data, error, isLoading } = useView({
-    moduleName: "secure_docs",
-    functionName: "get_documents_for_signer",
-    args: [account?.address as `0x${string}`],
-  })
-
+  // TODOs 22: get documents for the current user using useView hook
+  const { data, error, isLoading } = {
+    data: [[]],
+    error: "",
+    isLoading: false,
+  };
   // Process data to handle null response or extract the first element
   const signerDocuments = data?.[0] || []
 
   // Format date safely
-  
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString("en-US", {
       year: "numeric",
@@ -42,18 +41,11 @@ export default function SignDocuments() {
     });
   };
 
-  // Check if user has already signed a document
+  // TODOs 23: check if the user has already signed the document
   const hasUserSigned = (document: any) => {
-    if (!account?.address || !document || !document.signatures) return false;
-
-    // Check if the current user's address is in the document's signatures
-    const userHasSigned = document.signatures.some(
-      (sig: string) => sig.toLowerCase() === account.address?.toLowerCase()
-    );
-  
-    return userHasSigned;
+    return false; // Replace with actual logic to check if the user has signed the document
   };
-  
+
   // Get the signing deadline if available
   const getDeadline = (document: any) => {
     return document.deadline ? formatDate(document.deadline) : "No deadline";
@@ -77,7 +69,8 @@ export default function SignDocuments() {
           </p>
         </div>
 
-        {!connected && (
+        {/* TODOs 24: Add a card to show the user that they need to connect their wallet */}
+        {false && (
           <Card className="mb-8">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground/50" />
@@ -89,7 +82,8 @@ export default function SignDocuments() {
           </Card>
         )}
 
-        {connected && isLoading && (
+        {/* TODOs 25: Add a card to show the user that the the document data is not yet available*/}
+        {false && (
           <Card className="mb-8">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" />
@@ -98,7 +92,8 @@ export default function SignDocuments() {
           </Card>
         )}
 
-        {connected && !isLoading && error && (
+        {/* TODOs 26: Add a card to show the user that there was an error loading the documents */}
+        {false && (
           <Card className="mb-8 border-red-200 bg-red-50">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <p className="text-center text-red-600">
@@ -108,7 +103,8 @@ export default function SignDocuments() {
           </Card>
         )}
 
-        {connected && !isLoading && !error && signerDocuments.length === 0 && (
+        {/* TODOs 27: Add a card to show the user that there are no documents to sign */}
+        {false && (
           <Card className="mb-8">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground/50" />
@@ -168,10 +164,10 @@ export default function SignDocuments() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between border-t bg-muted/50 px-6 py-4">
-                  <a 
-                    href={document.ipfs_hash} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={document.ipfs_hash}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-blue-600 hover:underline inline-flex items-center text-sm"
                   >
                     View Document <ExternalLink className="ml-1 h-3 w-3" />
